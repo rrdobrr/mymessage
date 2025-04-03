@@ -1,7 +1,11 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import relationship
+
 from src.core.db import Base
+from src.features.chats.members_model import chat_members
+from src.features.chats.models import Chat
+from src.features.messages.models import Message
 
 
 class User(Base):
@@ -28,6 +32,19 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Отношения
-    chats = relationship("Chat", secondary="chat_members", back_populates="members")
+    # chats = relationship("Chat", secondary=chat_members, back_populates="members")
     created_chats = relationship("Chat", back_populates="creator")
     messages = relationship("Message", back_populates="sender") 
+    chats = relationship("Chat", secondary=chat_members, back_populates="members")
+    messages = relationship("Message", back_populates="sender")
+
+
+
+# from src.features.chats.models import Chat
+# from src.features.chats.members_model import chat_members
+
+# User.chats = relationship("Chat", secondary=chat_members, back_populates="members")
+
+# from src.features.messages.models import Message
+# User.messages = relationship("Message", back_populates="sender")
+

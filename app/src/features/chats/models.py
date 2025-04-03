@@ -2,20 +2,16 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Enum, PrimaryKeyConstraint
 from sqlalchemy.orm import relationship
 import enum
+
 from src.core.db import Base
+from src.features.chats.members_model import chat_members
+
 
 class ChatType(str, enum.Enum):
     PERSONAL = "personal"
     GROUP = "group"
 
-# Промежуточная таблица для связи many-to-many между чатами и пользователями
-chat_members = Table(
-    "chat_members",
-    Base.metadata,
-    Column("chat_id", Integer, ForeignKey("chats.id", ondelete="CASCADE"), nullable=False),
-    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-    PrimaryKeyConstraint("chat_id", "user_id"),  # Составной первичный ключ
-)
+
 
 class Chat(Base):
     __tablename__ = "chats"

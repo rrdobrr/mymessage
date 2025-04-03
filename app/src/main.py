@@ -1,9 +1,15 @@
+import sys
+from pathlib import Path
+
+# Добавляем родительскую директорию в путь для импортов
+sys.path.append(str(Path(__file__).parent.parent))
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.config import get_settings
-from src.api_v1.routers import api_router as api_v1_router
+from src.api_v1.routers import api_router
 from src.core.logging import setup_logging
 from src.core.exceptions import AppException, app_exception_handler
 
@@ -12,16 +18,15 @@ logger = setup_logging()
 settings = get_settings()
 
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    version=settings.VERSION,
-    docs_url="/docs",
-    redoc_url="/redoc",
+    title="MyMessage API",
+    description="API для мессенджера MyMessage",
+    version="1.0.0"
 )
 
 # Добавляем CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # В продакшене указать конкретные домены
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,7 +36,7 @@ app.add_middleware(
 app.add_exception_handler(AppException, app_exception_handler)
 
 # Подключаем роутеры API v1
-app.include_router(api_v1_router, prefix=settings.API_V1_PREFIX)
+app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/health")
 async def health_check():
@@ -48,3 +53,7 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     logger.info(f"Response: {response.status_code}")
     return response
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
