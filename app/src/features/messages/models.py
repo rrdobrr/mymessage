@@ -20,12 +20,13 @@ class Message(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    chat_id = Column(Integer, ForeignKey("chats.id"), nullable=False)
-    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    chat_id = Column(Integer, ForeignKey("chats.id", ondelete="CASCADE"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     text = Column(String(4000), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Отношения
-    chat = relationship("Chat", backref="messages")
-    sender = relationship("User", backref="sent_messages") 
+    chat = relationship("Chat", back_populates="messages")
+    sender = relationship("User", back_populates="messages") 
