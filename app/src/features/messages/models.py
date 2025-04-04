@@ -31,4 +31,4 @@ class Message(Base):
     chat = relationship("Chat", back_populates="messages")
     sender = relationship("User", back_populates="messages") 
 
-Message.chat = relationship("Chat", back_populates="messages")
+# Message.chat = relationship("Chat", back_populates="messages")

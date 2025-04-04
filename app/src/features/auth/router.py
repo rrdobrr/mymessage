@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
 from typing import Optional
+from jose import JWTError, jwt
 
 from src.core.db import get_db
 from src.core.security import (
@@ -10,10 +11,12 @@ from src.core.security import (
     create_refresh_token,
     verify_password,
     Token,
-    ACCESS_TOKEN_EXPIRE_MINUTES
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    SECRET_KEY,
+    ALGORITHM
 )
 from src.features.users.schemas import UserCreate, UserInDB
-from src.features.users.crud import create_user, get_user_by_email
+from src.features.users.crud import create_user, get_user_by_email, get_user_by_id
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -88,4 +91,35 @@ async def login(
     return Token(
         access_token=access_token,
         refresh_token=refresh_token
-    ) 
+    )
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(
+    refresh_token: str,
+    db: AsyncSession = Depends(get_db)
+):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid refresh token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise credentials_exception
+            
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+            
+        user = await get_user_by_id(db, int(user_id))
+        if user is None:
+            raise credentials_exception
+            
+        return Token(
+            access_token=create_access_token(user.id),
+            refresh_token=create_refresh_token(user.id)
+        )
+    except JWTError:
+        raise credentials_exception 

@@ -3,6 +3,7 @@ from typing import Any, Union
 from jose import jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from src.config import get_settings
 
 # Настройки JWT
 SECRET_KEY = "your-secret-key"  # В продакшене брать из переменных окружения
@@ -60,4 +61,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """Создает хэш пароля"""
-    return pwd_context.hash(password) 
+    return pwd_context.hash(password)
+
+settings = get_settings() 

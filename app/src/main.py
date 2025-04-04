@@ -18,9 +18,13 @@ logger = setup_logging()
 settings = get_settings()
 
 app = FastAPI(
-    title="MyMessage API",
+    title=settings.PROJECT_NAME,
     description="API для мессенджера MyMessage",
-    version="1.0.0"
+    version=settings.VERSION,
+    # Добавляем настройку безопасности для Swagger UI
+    swagger_ui_init_oauth={
+        "usePkceWithAuthorizationCodeGrant": True,
+    }
 )
 
 # Добавляем CORS middleware
@@ -36,7 +40,7 @@ app.add_middleware(
 app.add_exception_handler(AppException, app_exception_handler)
 
 # Подключаем роутеры API v1
-app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/health")
 async def health_check():

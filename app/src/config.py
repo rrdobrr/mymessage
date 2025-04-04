@@ -7,17 +7,22 @@ class Settings(BaseSettings):
     """
     Настройки приложения, читаемые из переменных окружения
     """
-    # Настройки базы данных
+    # Security settings
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # Database settings
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
     POSTGRES_HOST: str
-    POSTGRES_PORT: int
+    POSTGRES_PORT: str
 
-    # Дополнительные настройки
-    PROJECT_NAME: str = "MyMessage API"
-    VERSION: str = "1.0.0"
-    API_V1_PREFIX: str = "/api/v1"
+    # Project settings
+    PROJECT_NAME: str
+    VERSION: str
+    API_V1_PREFIX: str
 
     @property
     def DATABASE_URL(self) -> str:
