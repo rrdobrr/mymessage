@@ -1,6 +1,6 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, func
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.core.db import Base
 
 
@@ -19,16 +19,21 @@ class Message(Base):
     """
     __tablename__ = "messages"
 
-    id = Column(Integer, primary_key=True, index=True)
-    chat_id = Column(Integer, ForeignKey("chats.id", ondelete="CASCADE"), nullable=False)
-    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    text = Column(String(4000), nullable=False)
-    is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chat_id: Mapped[int] = mapped_column(ForeignKey("chats.id", ondelete="CASCADE"), nullable=False)
+    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    text: Mapped[str]
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     
-    # Отношения
-    chat = relationship("Chat", back_populates="messages")
-    sender = relationship("User", back_populates="messages") 
 
-# Message.chat = relationship("Chat", back_populates="messages")

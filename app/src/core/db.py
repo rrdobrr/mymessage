@@ -1,11 +1,17 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from dotenv import load_dotenv
 from src.config import get_settings
 
+# Явно загружаем .env файл перед получением настроек
+load_dotenv()
 settings = get_settings()
 
+print(f"Using database: {settings.DATABASE_URL}")  # Добавим для отладки
+
 # Создаем базовый класс для моделей
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 # Создаем асинхронный движок SQLAlchemy
 engine = create_async_engine(
@@ -37,4 +43,8 @@ async def get_db() -> AsyncSession:
             await session.rollback()
             raise
         finally:
-            await session.close() 
+            await session.close()
+
+def setup_db_relationships():
+    from src.core.relationships import setup_relationships
+    setup_relationships() 

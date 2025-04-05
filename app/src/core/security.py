@@ -5,10 +5,12 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from src.config import get_settings
 
+settings = get_settings()
+
 # Настройки JWT
-SECRET_KEY = "your-secret-key"  # В продакшене брать из переменных окружения
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 # Контекст для хэширования паролей
@@ -61,6 +63,4 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """Создает хэш пароля"""
-    return pwd_context.hash(password)
-
-settings = get_settings() 
+    return pwd_context.hash(password) 

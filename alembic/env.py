@@ -1,5 +1,7 @@
 import asyncio
 from logging.config import fileConfig
+import sys
+from pathlib import Path
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -7,13 +9,15 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
+# Добавляем путь к корневой директории проекта
+sys.path.append(str(Path(__file__).parent.parent))
+
 # Импортируем модели и конфигурацию
 from src.features.users.models import User
 from src.features.chats.models import Chat
 from src.features.messages.models import Message
 from src.core.db import Base
 from src.config import get_settings
-
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -32,7 +36,7 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-from src.config import get_settings
+
 settings = get_settings()
 
 def get_url():

@@ -1,11 +1,8 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy import DateTime, Boolean, String, func
+from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.db import Base
-from src.features.chats.members_model import chat_members
-from src.features.chats.models import Chat
-from src.features.messages.models import Message
 
 
 class User(Base):
@@ -23,28 +20,21 @@ class User(Base):
     """
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(50), unique=True, nullable=False)
-    email = Column(String(100), unique=True, nullable=False)
-    hashed_password = Column(String(200), nullable=False)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(200))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
 
-    # Отношения
-    # chats = relationship("Chat", secondary=chat_members, back_populates="members")
-    created_chats = relationship("Chat", back_populates="creator")
-    messages = relationship("Message", back_populates="sender") 
-    chats = relationship("Chat", secondary=chat_members, back_populates="members")
-    messages = relationship("Message", back_populates="sender")
-
-
-
-# from src.features.chats.models import Chat
-# from src.features.chats.members_model import chat_members
-
-# User.chats = relationship("Chat", secondary=chat_members, back_populates="members")
-
-# from src.features.messages.models import Message
-# User.messages = relationship("Message", back_populates="sender")
 

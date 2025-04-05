@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from loguru import logger
 
 # Добавляем родительскую директорию в путь для импортов
 sys.path.append(str(Path(__file__).parent.parent))
@@ -10,12 +11,16 @@ from fastapi.responses import JSONResponse
 
 from src.config import get_settings
 from src.api_v1.routers import api_router
-from src.core.logging import setup_logging
-from src.core.exceptions import AppException, app_exception_handler
+from src.core.logging import setup_logging, logger
+from src.core.exceptions import setup_exception_handlers
+from src.core.relationships import setup_relationships
+from src.core.db import Base, engine, setup_db_relationships
+
+# Инициализируем настройки
+settings = get_settings()
 
 # Инициализируем логгер
-logger = setup_logging()
-settings = get_settings()
+setup_logging()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -36,10 +41,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Регистрируем обработчик исключений
-app.add_exception_handler(AppException, app_exception_handler)
+@app.on_event("startup")
+async def startup():
+    """Инициализация приложения"""
+    # Создаем таблицы в БД
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    # Устанавливаем отношения между моделями
+    setup_relationships()
+    logger.info("Application startup complete")
 
-# Подключаем роутеры API v1
+# Регистрируем обработчики исключений
+setup_exception_handlers(app)
+
+# Подключаем все роуты через единый роутер
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/health")
