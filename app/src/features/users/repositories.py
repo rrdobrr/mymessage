@@ -1,11 +1,13 @@
 from typing import Optional, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from jose import JWTError, jwt
 
 from src.core.logging import logger
 from src.features.users.models import User
 from src.features.users.schemas import UserCreate, UserUpdate
-from src.core.security import get_password_hash
+from src.core.security import get_password_hash, SECRET_KEY, ALGORITHM
+from src.core.exceptions import InvalidTokenException
 
 
 class UserRepository:
@@ -88,4 +90,20 @@ class UserRepository:
         """Получение пользователя по username"""
         logger.debug(f"Getting user by username: {username}")
         result = await self.db.execute(select(User).where(User.username == username))
-        return result.scalar_one_or_none() 
+        return result.scalar_one_or_none()
+
+    async def get_current_user_websocket(self, token: str) -> Optional[User]:
+        """Получение текущего пользователя для WebSocket соединения"""
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id: int = int(payload.get("sub"))
+            if user_id is None:
+                raise InvalidTokenException()
+        except JWTError:
+            raise InvalidTokenException()
+            
+        user = await self.get_by_id(user_id)
+        if user is None:
+            raise InvalidTokenException()
+            
+        return user 

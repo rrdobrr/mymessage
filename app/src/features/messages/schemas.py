@@ -6,7 +6,6 @@ class MessageBase(BaseModel):
 
 class MessageCreate(MessageBase):
     chat_id: int
-    sender_id: int
     text: str = Field(..., min_length=1)
 
 class MessageUpdate(BaseModel):
@@ -35,4 +34,26 @@ class MessageResponse(BaseModel):
     is_read: bool
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+class WebSocketMessage(BaseModel):
+    """Схема для входящих WebSocket сообщений"""
+    text: constr(min_length=1, max_length=4000)
+    message_type: str = Field(default="message")
+
+class WebSocketResponse(BaseModel):
+    """Схема для исходящих WebSocket сообщений"""
+    type: str
+    text: str
+    timestamp: datetime
+    user_id: int
+    message_id: int | None = None
+
+class WebSocketStatusMessage(BaseModel):
+    """Схема для статусных сообщений WebSocket"""
+    type: str
+    user_id: int
+    username: str | None = None
+    timestamp: datetime
+    message_id: int | None = None
+    chat_id: int | None = None 

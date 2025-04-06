@@ -24,26 +24,36 @@ class InterceptHandler(logging.Handler):
 
 def setup_logging():
     """Настройка логирования для приложения"""
+    # Удаляем все существующие обработчики
+    loguru_logger.remove()
+    
     # Создаем директорию для логов если её нет
     logs_path = Path("logs")
     logs_path.mkdir(exist_ok=True)
 
-    # Настраиваем логирование
+    # Настраиваем loguru с одним обработчиком
     loguru_logger.configure(
         handlers=[
-            {"sink": sys.stdout, "level": logging.INFO},
-            {"sink": "logs/app.log", "rotation": "500 MB", "level": logging.INFO},
+            {
+                "sink": sys.stdout,
+                "level": logging.INFO,
+                "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+            }
         ]
     )
 
-    # Перехватываем логи uvicorn и fastapi
-    for _log in ["uvicorn", "uvicorn.error", "fastapi"]:
+    # Отключаем логи uvicorn access
+    logging.getLogger("uvicorn.access").handlers = []
+    logging.getLogger("uvicorn.access").propagate = False
+
+    # Перехватываем только нужные логи
+    for _log in ["uvicorn.error", "fastapi"]:
         _logger = logging.getLogger(_log)
         _logger.handlers = [InterceptHandler()]
-        _logger.setLevel(logging.INFO)  # Устанавливаем уровень логирования
+        _logger.propagate = False
 
 
 # Экспортируем настроенный логгер
 logger = loguru_logger
 
-__all__ = ["logger", "setup_logging"] 
+__all__ = ["logger", "setup_logging"]

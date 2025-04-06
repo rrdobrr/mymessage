@@ -8,7 +8,7 @@ from tests.conftest import (
     AUTH_USER_DATA
 )
 
-from loguru import logger
+from src.core.logging import logger
 
 pytestmark = pytest.mark.asyncio
 

@@ -1,7 +1,7 @@
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 from typing import Any, Dict, Optional
-from loguru import logger
+from src.core.logging import logger
 
 
 class AppException(HTTPException):
@@ -134,6 +134,20 @@ class RefreshTokenException(UserException):
         self.status_code = 401  # Unauthorized
 
 
+class WebSocketException(UserException):
+    """Исключение для WebSocket соединений"""
+    def __init__(self, message: str = None, details: dict = None, code: int = 4000):
+        super().__init__(message=message, details=details)
+        self.status_code = 1000  # WebSocket status code
+        self.code = code  # Кастомный код для WebSocket закрытия
+
+
+class WebSocketAuthException(WebSocketException):
+    """Исключение при ошибке аутентификации WebSocket"""
+    def __init__(self, message: str = "WebSocket authentication failed", details: dict = None):
+        super().__init__(message=message, details=details, code=4001)
+
+
 async def app_exception_handler(request: Request, exc: AppException):
     """Обработчик кастомных исключений"""
     logger.error(
@@ -174,4 +188,6 @@ def setup_exception_handlers(app):
     app.add_exception_handler(InvalidCredentialsException, app_exception_handler)
     app.add_exception_handler(InvalidTokenException, app_exception_handler)
     app.add_exception_handler(TokenExpiredException, app_exception_handler)
-    app.add_exception_handler(RefreshTokenException, app_exception_handler) 
+    app.add_exception_handler(RefreshTokenException, app_exception_handler)
+    app.add_exception_handler(WebSocketException, app_exception_handler)
+    app.add_exception_handler(WebSocketAuthException, app_exception_handler) 

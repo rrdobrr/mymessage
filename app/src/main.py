@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from loguru import logger
+
 
 # Добавляем родительскую директорию в путь для импортов
 sys.path.append(str(Path(__file__).parent.parent))
@@ -21,6 +21,7 @@ settings = get_settings()
 
 # Инициализируем логгер
 setup_logging()
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -50,7 +51,6 @@ async def startup():
     
     # Устанавливаем отношения между моделями
     setup_relationships()
-    logger.info("Application startup complete")
 
 # Регистрируем обработчики исключений
 setup_exception_handlers(app)

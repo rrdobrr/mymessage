@@ -2,6 +2,7 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import WebSocket
 
 from src.core.logging import logger
 from src.core.db import get_db
@@ -47,4 +48,5 @@ async def get_current_user(
         
     except JWTError as e:
         logger.error(f"JWT decode error: {str(e)}")
-        raise InvalidTokenException() 
+        raise InvalidTokenException()
+

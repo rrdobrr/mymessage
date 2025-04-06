@@ -24,4 +24,5 @@ httpx>=0.25.1
 # Добавленные зависимости
 email-validator==2.1.0
 pydantic[email]>=2.0.0
+aiohttp==3.9.1  # Для HTTP запросов в тестах
 

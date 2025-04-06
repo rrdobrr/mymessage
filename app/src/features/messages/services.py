@@ -29,7 +29,7 @@ class MessageService:
             logger.warning(f"Message {message_id} not found")
             raise NotFoundException(f"Message {message_id} not found")
             
-        chat = await self.chat_service.get_chat(message.chat_id)
+        chat = await self.chat_service.get_chat(message.chat_id, current_user)
         if current_user.id not in [m.id for m in chat.members]:
             logger.warning(f"User {current_user.id} attempted to access message {message_id} without chat membership")
             raise ForbiddenException("Not a chat member")
@@ -40,7 +40,7 @@ class MessageService:
         """Создание нового сообщения"""
         logger.info(f"Creating message in chat {message_data.chat_id} by user {current_user.id}")
         
-        chat = await self.chat_service.get_chat(message_data.chat_id)
+        chat = await self.chat_service.get_chat(message_data.chat_id, current_user)
         if not chat:
             logger.warning(f"Chat {message_data.chat_id} not found")
             raise NotFoundException(f"Chat {message_data.chat_id} not found")
@@ -57,7 +57,7 @@ class MessageService:
                 "updated_at": now,
                 "sender_id": current_user.id
             })
-            message = await self.repository.create(message_dict)
+            message = await self.repository.create(message_data, current_user.id)
             logger.info(f"Message {message.id} created successfully")
             return message
         except Exception as e:
