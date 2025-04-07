@@ -4,6 +4,7 @@ from src.features.auth.router import router as auth_router
 from src.features.users.router import router as users_router
 from src.features.chats.router import router as chats_router
 from src.features.messages.router import router as messages_router
+from src.features.websocket.router import router as websocket_router
 
 
 
@@ -14,3 +15,4 @@ api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
 api_router.include_router(users_router, prefix="/users", tags=["users"])
 api_router.include_router(chats_router, prefix="/chats", tags=["chats"])
 api_router.include_router(messages_router, prefix="/messages", tags=["messages"])
+api_router.include_router(websocket_router, prefix="/websocket", tags=["websocket"])

@@ -16,11 +16,13 @@ class MessageRepository:
     async def create(self, message_data: MessageCreate, sender_id: int) -> Message:
         logger.debug(f"Creating message in DB: chat_id={message_data.chat_id}, sender_id={sender_id}")
         try:
-            db_message = Message(
-                text=message_data.text,
-                chat_id=message_data.chat_id,
-                sender_id=sender_id
-            )
+            # Преобразуем message_data в словарь и добавляем sender_id
+            message_dict = message_data.model_dump()
+            message_dict["sender_id"] = sender_id
+            
+            # Создаем сообщение, используя все поля из message_dict
+            db_message = Message(**message_dict)
+            
             self.db.add(db_message)
             await self.db.commit()
             await self.db.refresh(db_message)
@@ -63,16 +65,21 @@ class MessageRepository:
         return list(result.scalars().unique())
 
     async def update(self, message: Message, message_update: MessageUpdate) -> Message:
-        logger.debug(f"Updating message in DB: id={message.id}")
+        """Обновление сообщения"""
         try:
-            for field, value in message_update.dict(exclude_unset=True).items():
+            update_dict = message_update.model_dump(exclude_unset=True)
+            
+            # Обновляем все поля из update_dict
+            for field, value in update_dict.items():
                 setattr(message, field, value)
+            
+            message.updated_at = datetime.utcnow()
             await self.db.commit()
             await self.db.refresh(message)
-            logger.debug(f"Message updated in DB: id={message.id}")
+            
             return message
         except Exception as e:
-            logger.error(f"Error updating message in DB: {str(e)}")
+            logger.error(f"Error updating message: {str(e)}")
             raise
 
     async def delete(self, message: Message) -> None:
@@ -83,4 +90,10 @@ class MessageRepository:
             logger.debug(f"Message deleted from DB: id={message.id}")
         except Exception as e:
             logger.error(f"Error deleting message from DB: {str(e)}")
-            raise 
+            raise
+
+    async def get_by_idempotency_key(self, idempotency_key: str) -> Optional[Message]:
+        """Получение сообщения по idempotency ключу"""
+        query = select(Message).where(Message.idempotency_key == idempotency_key)
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none() 

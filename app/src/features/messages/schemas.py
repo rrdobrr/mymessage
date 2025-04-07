@@ -1,25 +1,36 @@
 from datetime import datetime
 from pydantic import BaseModel, constr, Field
+from typing import Optional, List
+
+
 
 class MessageBase(BaseModel):
     text: constr(max_length=4000)
 
-class MessageCreate(MessageBase):
+class MessageCreate(BaseModel):
     chat_id: int
-    text: str = Field(..., min_length=1)
+    text: str
+
+    idempotency_key: str | None = None
 
 class MessageUpdate(BaseModel):
+    message_id: int | None = None
     text: str | None = None
     is_read: bool | None = None
+    read_by: list[int] | None = None
+    idempotency_key: str | None = None
+
+    class Config:
+        from_attributes = True
 
 class MessageInDB(MessageBase):
     id: int
     chat_id: int
     sender_id: int
-    is_read: bool
+    is_read: bool = False
     created_at: datetime
     updated_at: datetime
-    read_by: list[int] = []
+    read_by: list[int] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
@@ -29,31 +40,21 @@ class MessageResponse(BaseModel):
     chat_id: int
     sender_id: int
     text: str
+    is_read: bool
     created_at: datetime
     updated_at: datetime
-    is_read: bool
+    read_by: list[int] = Field(default_factory=list)
+    idempotency_key: str | None = None
 
     class Config:
         from_attributes = True
 
-class WebSocketMessage(BaseModel):
-    """Схема для входящих WebSocket сообщений"""
-    text: constr(min_length=1, max_length=4000)
-    message_type: str = Field(default="message")
+class MessageHistory(BaseModel):
+    messages: List[MessageResponse]
+    total: int
+    has_more: bool
 
-class WebSocketResponse(BaseModel):
-    """Схема для исходящих WebSocket сообщений"""
-    type: str
-    text: str
-    timestamp: datetime
-    user_id: int
-    message_id: int | None = None
-
-class WebSocketStatusMessage(BaseModel):
-    """Схема для статусных сообщений WebSocket"""
-    type: str
-    user_id: int
-    username: str | None = None
-    timestamp: datetime
-    message_id: int | None = None
-    chat_id: int | None = None 
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }

@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.logging import logger
 from datetime import datetime
+from typing import Optional
 
 from src.core.exceptions import (
     NotFoundException,
@@ -36,10 +37,21 @@ class MessageService:
             
         return message
 
+    async def get_message_by_idempotency_key(self, idempotency_key: str) -> Optional[Message]:
+        """Получение сообщения по idempotency ключу"""
+        return await self.repository.get_by_idempotency_key(idempotency_key)
+
     async def create_message(self, message_data: MessageCreate, current_user: UserInDB) -> Message:
         """Создание нового сообщения"""
         logger.info(f"Creating message in chat {message_data.chat_id} by user {current_user.id}")
         
+        # Проверяем существование сообщения с таким ключом
+        if message_data.idempotency_key:
+            existing_message = await self.get_message_by_idempotency_key(message_data.idempotency_key)
+            if existing_message:
+                logger.info(f"Found existing message with idempotency key {message_data.idempotency_key}")
+                return existing_message
+
         chat = await self.chat_service.get_chat(message_data.chat_id, current_user)
         if not chat:
             logger.warning(f"Chat {message_data.chat_id} not found")
@@ -57,7 +69,11 @@ class MessageService:
                 "updated_at": now,
                 "sender_id": current_user.id
             })
-            message = await self.repository.create(message_data, current_user.id)
+
+
+            
+            logger.info(f"Message dict: {message_dict}")
+            message = await self.repository.create(MessageCreate(**message_dict), current_user.id)
             logger.info(f"Message {message.id} created successfully")
             return message
         except Exception as e:
@@ -118,8 +134,31 @@ class MessageService:
             logger.error(f"Error getting chat messages: {str(e)}")
             raise MessageException("Failed to get chat messages")
 
-    async def mark_as_read(self, message_id: int, current_user: UserInDB) -> Message:
-        """Отметить сообщение как прочитанное"""
-        message = await self.get_message(message_id, current_user)
-        message_update = MessageUpdate(is_read=True)
-        return await self.repository.update(message, message_update) 
+    async def mark_as_read(self, message_id: int, user_id: int) -> Message:
+        logger.debug(f"Marking message {message_id} as read by user {user_id}")
+        message = await self.repository.get_by_id(message_id)
+        if not message:
+            raise NotFoundException(f"Message {message_id} not found")
+        
+        logger.debug(f"Current message state: is_read={message.is_read}, read_by={message.read_by}")
+        
+        # Обновляем статус прочтения
+        message.is_read = True
+        
+        # Добавляем пользователя в список прочитавших
+        if not message.read_by:
+            message.read_by = [user_id]
+        elif user_id not in message.read_by:
+            message.read_by.append(user_id)
+        
+        # Создаем объект обновления
+        update_data = MessageUpdate(
+            is_read=True,
+            read_by=message.read_by
+        )
+        
+        # Обновляем сообщение
+        updated_message = await self.repository.update(message, update_data)
+        
+        logger.debug(f"Updated message state: is_read={updated_message.is_read}, read_by={updated_message.read_by}")
+        return updated_message 

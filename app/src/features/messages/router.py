@@ -1,27 +1,17 @@
-from fastapi import APIRouter, Depends, status, WebSocket, WebSocketDisconnect
-from sqlalchemy.ext.asyncio import AsyncSession
-from src.core.logging import logger
-from datetime import datetime
-from pydantic import ValidationError
+from fastapi import APIRouter, Depends, status
 
-from src.core.db import get_db
-from src.features.messages.dependencies import get_message_service, get_websocket_service
+from src.features.messages.dependencies import get_message_service
 from src.features.messages.schemas import (
     MessageCreate,
     MessageUpdate,
     MessageInDB,
-    WebSocketMessage,
-    WebSocketResponse,
-    WebSocketStatusMessage
+
 )
-from src.core.security import get_token_from_websocket
+
 from src.features.auth.dependencies import get_current_user
 from src.features.users.schemas import UserInDB
-from src.features.messages.websocket_service import WebSocketService
-from src.core.exceptions import InvalidTokenException, WebSocketException, WebSocketAuthException
-from src.features.messages.services import MessageService
-from src.core.logging import logger
-from src.features.users.repositories import UserRepository
+
+
 
 router = APIRouter(tags=["messages"])
 
@@ -83,16 +73,3 @@ async def read_chat_messages(
 ):
     """Получение сообщений чата"""
     return await message_service.get_chat_messages(chat_id, current_user, skip, limit)
-
-@router.websocket("/ws/chat/{chat_id}")
-async def chat_websocket(
-    websocket: WebSocket,
-    chat_id: int,
-    db: AsyncSession = Depends(get_db),
-    ws_service: WebSocketService = Depends(get_websocket_service),
-    message_service: MessageService = Depends(get_message_service)
-):
-    """WebSocket endpoint для чата"""
-    connection_id = id(websocket)
-    logger.info(f"WebSocket connection attempt - ID: {connection_id}")
-    await ws_service.handle_connection(websocket, chat_id, db, message_service) 

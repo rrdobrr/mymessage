@@ -42,11 +42,25 @@ def setup_logging():
         ]
     )
 
-    # Отключаем логи uvicorn access
-    logging.getLogger("uvicorn.access").handlers = []
-    logging.getLogger("uvicorn.access").propagate = False
+    # Полностью отключаем все логи SQLAlchemy
+    for logger_name in [
+        "sqlalchemy",
+        "sqlalchemy.engine",
+        "sqlalchemy.engine.base.Engine",
+        "sqlalchemy.dialects",
+        "sqlalchemy.pool",
+        "sqlalchemy.orm",
+        "sqlalchemy.engine.Engine"
+    ]:
+        logging.getLogger(logger_name).setLevel(logging.CRITICAL)
+        logging.getLogger(logger_name).propagate = False
+        logging.getLogger(logger_name).handlers = []
 
-    # Перехватываем только нужные логи
+    # # Отключаем логи uvicorn access
+    # logging.getLogger("uvicorn.access").handlers = []
+    # logging.getLogger("uvicorn.access").propagate = False
+
+    # Перехватываем нужные логи
     for _log in ["uvicorn.error", "fastapi"]:
         _logger = logging.getLogger(_log)
         _logger.handlers = [InterceptHandler()]

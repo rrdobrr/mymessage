@@ -73,11 +73,7 @@ class UserService:
         except Exception as e:
             logger.error(f"Failed to create user: {str(e)}")
             raise UserUpdateException("Failed to create user")
-        
-
-
-
-        
+             
 
     async def update_user(self, user_id: int, user_update: UserUpdate, current_user: UserInDB) -> User:
         """Обновление данных пользователя"""

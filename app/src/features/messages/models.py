@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, func
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, func, ARRAY
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from src.core.db import Base
 
@@ -35,5 +35,7 @@ class Message(Base):
         nullable=False
     )
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    idempotency_key: Mapped[str] = mapped_column(String(64), unique=True, nullable=True)
+    read_by: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=list, server_default='{}')
     
 
