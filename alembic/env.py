@@ -12,12 +12,11 @@ from alembic import context
 # Добавляем путь к корневой директории проекта
 sys.path.append(str(Path(__file__).parent.parent))
 
-# Импортируем модели и конфигурацию
-from src.features.users.models import User
-from src.features.chats.models import Chat
-from src.features.messages.models import Message
+# Импортируем только relationships, который содержит все модели
+import src.core.relationships 
 from src.core.db import Base
 from src.config import get_settings
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config

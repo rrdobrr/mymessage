@@ -1,5 +1,5 @@
 from fastapi import WebSocket
-from typing import Dict, Union
+from typing import Dict, Union, Any
 from src.core.logging import logger
 import json
 from datetime import datetime
@@ -10,17 +10,17 @@ from .schemas import (
     UserStatusResponse
 )
 from pydantic import parse_obj_as
+from collections import defaultdict
+from typing import Literal
 
-class DateTimeEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        return super().default(obj)
+
+from .utils import DateTimeEncoder
+
 
 class WebSocketSessionManager:
     def __init__(self):
         # Структура: {chat_id: {user_id: websocket}}
-        self.active_connections: Dict[int, Dict[int, WebSocket]] = {}
+        self.active_connections: Dict[int, Dict[int, WebSocket]] = defaultdict(dict)
 
     async def connect(self, websocket: WebSocket, chat_id: int, user_id: int):
         """Подключение нового пользователя к чату"""
@@ -37,22 +37,48 @@ class WebSocketSessionManager:
                 self.active_connections.pop(chat_id)
         logger.info(f"User {user_id} disconnected from chat {chat_id}")
 
-    async def broadcast_message(self, chat_id: int, message: Union[NewMessageResponse, ReadStatusResponse, UserStatusResponse]):
-        """Рассылка сообщения всем участникам чата"""
+    async def broadcast_message(self, chat_id: int, message: Any, current_user_id: int) -> None:
+        """Отправка сообщения всем подключенным пользователям в чате"""
         if chat_id in self.active_connections:
-            message_json = message.json()
-            for websocket in self.active_connections[chat_id].values():
-                await websocket.send_text(message_json)
+
+
+            message_json = json.loads(
+                json.dumps(message, cls=DateTimeEncoder)
+            )
+
+          
+
+            # Отправляем сообщение всем подключенным пользователям
+            for user_id, websocket in self.active_connections[chat_id].items():
+                if user_id == current_user_id:  # Пропускаем текущего пользователя
+                    continue
+                    
+                try:
+                    # logger.info(f"TRYING to send message to user {user_id} in chat {chat_id}")
+                    if websocket.application_state.CONNECTED:
+                        if message_json["message_type"] == "new_message":
+                            logger.info(f"УВЕДОМЛЕНИЯ О НОВОМ СООБЩЕНИИ: to user {user_id} in chat {chat_id} \n {message_json}")
+                        if message_json["message_type"] == "read_status":
+                            logger.info(f"СТАТУС ПРОЧТЕНИЯ: to user {user_id} in chat {chat_id} \n {message_json}")
+                        if message_json["message_type"] == "user_status":
+                            logger.info(f"СТАТУС ПОЛЬЗОВАТЕЛЯ: to user {user_id} in chat {chat_id} \n {message_json}")
+    
+                        await websocket.send_text(json.dumps(message_json, cls=DateTimeEncoder))
+                        logger.info(f"Message sent successfully to user {user_id}")
+                    else:
+                        logger.warning(f"Websocket for user {user_id} is not in CONNECTED state")
+                except Exception as e:
+                    logger.error(f"Error sending message to user {user_id}: {str(e)}")
 
     async def send_user_status(self, chat_id: int, user_id: int, status: str):
         """Отправка статуса пользователя"""
         response = UserStatusResponse(
-            type="user_status",
+            response_type='user_status',
             user_id=user_id,
             status=status,
             timestamp=datetime.utcnow()
         )
-        await self.broadcast_message(chat_id, response)
+        # await self.broadcast_message(chat_id, response, user_id)
 
     async def send_personal_message(self, chat_id: int, user_id: int, message: dict):
         """Отправка личного сообщения конкретному пользователю"""

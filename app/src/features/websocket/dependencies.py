@@ -23,10 +23,9 @@ async def get_websocket_controller(
 ) -> WebSocketController:
     """Получение экземпляра WebSocketController"""
     logger.info("Initializing WebSocketController")
-    session_manager = WebSocketSessionManager()
-    message_handler = WebSocketMessageHandler(message_service)
+    message_handler = WebSocketMessageHandler(message_service, websocket_manager)
     return WebSocketController(
-        session_manager=session_manager,
+        session_manager=websocket_manager,
         message_handler=message_handler,
         message_service=message_service
     )
@@ -46,3 +45,5 @@ async def get_message_service(db: AsyncSession = Depends(get_db)) -> MessageServ
     """Получение экземпляра MessageService"""
     logger.info("Initializing MessageService")
     return MessageService(db) 
+
+

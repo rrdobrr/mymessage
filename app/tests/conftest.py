@@ -57,6 +57,16 @@ VALID_LOGIN_DATA = {
     "password": "testotest"
 }
 
+ADDITIONAL_TEST_USER_DATA = {
+    "username": "test_iwm5fcvsye@example.com",
+    "password": "testpass123"
+}
+
+ADDITIONAL_TEST_USER_DATA_2 = {
+    "username": "new_user@user.com",
+    "password": "testotest"
+}
+
 INVALID_LOGIN_DATA = {
     "username": "wrong@example.com",
     "password": "wrongpass"

@@ -1,6 +1,6 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, func, ARRAY
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy import Integer, String, DateTime, ForeignKey, func, ARRAY
+from sqlalchemy.orm import Mapped, mapped_column
 from src.core.db import Base
 
 
@@ -14,8 +14,8 @@ class Message(Base):
         sender_id (int): ID отправителя
         text (str): Текст сообщения
         created_at (datetime): Время отправки сообщения
-        is_read (bool): Признак прочтения сообщения
-        read_by: Список пользователей, прочитавших сообщение
+        updated_at (datetime): Время последнего обновления
+        idempotency_key (str): Ключ идемпотентности
     """
     __tablename__ = "messages"
 
@@ -34,8 +34,6 @@ class Message(Base):
         onupdate=func.now(),
         nullable=False
     )
-    is_read: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     idempotency_key: Mapped[str] = mapped_column(String(64), unique=True, nullable=True)
-    read_by: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=list, server_default='{}')
-    
+   
 

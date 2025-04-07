@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.logging import logger
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from src.core.exceptions import (
     NotFoundException,
@@ -135,30 +135,54 @@ class MessageService:
             raise MessageException("Failed to get chat messages")
 
     async def mark_as_read(self, message_id: int, user_id: int) -> Message:
+        """
+        Отмечает сообщение как прочитанное
+        
+        Args:
+            message_id: ID сообщения
+            user_id: ID пользователя, прочитавшего сообщение
+            
+        Returns:
+            Message: Обновленное сообщение
+            
+        Raises:
+            NotFoundException: Если сообщение не найдено
+        """
         logger.debug(f"Marking message {message_id} as read by user {user_id}")
+        logger.info(f"НАЧАЛО МАРКАС АС РЕАД")
+  
+        # Получаем сообщение
         message = await self.repository.get_by_id(message_id)
+        
         if not message:
             raise NotFoundException(f"Message {message_id} not found")
         
-        logger.debug(f"Current message state: is_read={message.is_read}, read_by={message.read_by}")
+        # Создаем запись в message_read_status
+        await self.repository.create_read_status(message_id, user_id)
+
+
+        return message 
+
+    async def get_message_readers(self, message_id: int) -> List[int]:
+        """
+        Получает список пользователей, прочитавших сообщение
         
-        # Обновляем статус прочтения
-        message.is_read = True
+        Args:
+            message_id: ID сообщения
+            
+        Returns:
+            List[int]: Список ID пользователей, прочитавших сообщение
+            
+        Raises:
+            NotFoundException: Если сообщение не найдено
+        """
+        logger.debug(f"Getting readers for message {message_id}")
         
-        # Добавляем пользователя в список прочитавших
-        if not message.read_by:
-            message.read_by = [user_id]
-        elif user_id not in message.read_by:
-            message.read_by.append(user_id)
-        
-        # Создаем объект обновления
-        update_data = MessageUpdate(
-            is_read=True,
-            read_by=message.read_by
-        )
-        
-        # Обновляем сообщение
-        updated_message = await self.repository.update(message, update_data)
-        
-        logger.debug(f"Updated message state: is_read={updated_message.is_read}, read_by={updated_message.read_by}")
-        return updated_message 
+        # Проверяем существование сообщения
+        message = await self.repository.get_by_id(message_id)
+        if not message:
+            raise NotFoundException(f"Message {message_id} not found")
+            
+        # Получаем список прочитавших из репозитория
+        return await self.repository.get_message_readers(message_id)
+

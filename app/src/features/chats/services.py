@@ -82,18 +82,27 @@ class ChatService:
 
     async def get_chat(self, chat_id: int, current_user: UserInDB) -> Chat:
         """Получение чата по ID"""
-        chat = await self.repository.get_by_id(chat_id)
-        if not chat:
-            raise NotFoundException(f"Chat {chat_id} not found")
+        try:
+            chat = await self.repository.get_by_id(chat_id)
+            if not chat:
+                logger.warning(f"Chat {chat_id} not found")
+                raise NotFoundException(f"Chat {chat_id} not found")
 
-        # Получаем участников чата
-        members = await self.repository.get_chat_members(chat.id)
-        if current_user.id not in [m.id for m in members]:
-            raise ForbiddenException("Not a chat member")
+            # Получаем участников чата
+            members = await self.repository.get_chat_members(chat.id)
+            if current_user.id not in [m.id for m in members]:
+                logger.warning(f"User {current_user.id} attempted to access chat {chat_id} without being a member")
+                raise ForbiddenException("Not a chat member")
 
-        # Устанавливаем участников для сериализации
-        setattr(chat, 'members', members)
-        return chat
+            # Устанавливаем участников для сериализации
+            setattr(chat, 'members', members)
+            return chat
+        
+        except (NotFoundException, ForbiddenException):
+            raise
+        except Exception as e:
+            logger.error(f"Error getting chat {chat_id}: {str(e)}")
+            raise ChatException(f"Failed to get chat {chat_id}")
 
     async def get_user_chats(self, current_user: UserInDB) -> List[Chat]:
         """Получение списка чатов пользователя"""

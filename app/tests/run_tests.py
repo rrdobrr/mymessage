@@ -18,10 +18,10 @@ def run_tests():
         "--tb=short",
         "--maxfail=1",
         "-s",
-        # str(test_path / "test_auth.py"),
-        # str(test_path / "test_users.py"),
-        # str(test_path / "test_chats.py"),
-        # str(test_path / "test_messages.py"),
+        str(test_path / "test_auth.py"),
+        str(test_path / "test_users.py"),
+        str(test_path / "test_chats.py"),
+        str(test_path / "test_messages.py"),
         str(test_path / "test_websocket.py")
     ])
     

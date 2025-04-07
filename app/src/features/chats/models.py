@@ -1,15 +1,13 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Enum as SQLAlchemyEnum
-from sqlalchemy.orm import relationship
+from sqlalchemy import String, DateTime, ForeignKey, Enum as SQLAlchemyEnum
+
 from enum import Enum as PyEnum
 from typing import List
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from src.core.db import Base
-from src.features.chats.members_model import chat_members
-from src.features.users.models import User
-from src.features.messages.models import Message
+
 
 
 class ChatType(str, PyEnum):

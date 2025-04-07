@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import select
+from sqlalchemy import select, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from typing import List, Optional
@@ -7,6 +7,7 @@ from src.core.logging import logger
 
 from src.features.messages.models import Message
 from src.features.messages.schemas import MessageCreate, MessageUpdate
+from src.features.messages.read_status_model import message_read_status
 
 
 class MessageRepository:
@@ -96,4 +97,48 @@ class MessageRepository:
         """Получение сообщения по idempotency ключу"""
         query = select(Message).where(Message.idempotency_key == idempotency_key)
         result = await self.db.execute(query)
-        return result.scalar_one_or_none() 
+        return result.scalar_one_or_none()
+
+    async def create_read_status(self, message_id: int, user_id: int) -> None:
+        """
+        Создает запись о прочтении сообщения
+        
+        Args:
+            message_id: ID сообщения
+            user_id: ID пользователя
+        """
+        logger.debug(f"Creating read status: message_id={message_id}, user_id={user_id}")
+
+        try:
+            stmt = insert(message_read_status).values(
+                message_id=message_id,
+                user_id=user_id,
+                read_at=datetime.utcnow()
+            )
+            await self.db.execute(stmt)
+            await self.db.commit()
+            logger.debug("Read status created successfully")
+        except Exception as e:
+            logger.error(f"Error creating read status: {str(e)}")
+            raise
+
+    async def get_message_readers(self, message_id: int) -> List[int]:
+        """
+        Получает список ID пользователей, прочитавших сообщение
+        
+        Args:
+            message_id: ID сообщения
+            
+        Returns:
+            List[int]: Список ID пользователей
+        """
+        logger.debug(f"Getting readers for message: {message_id}")
+        try:
+            query = select(message_read_status.c.user_id).where(
+                message_read_status.c.message_id == message_id
+            )
+            result = await self.db.execute(query)
+            return [row[0] for row in result.fetchall()]
+        except Exception as e:
+            logger.error(f"Error getting message readers: {str(e)}")
+            raise 
