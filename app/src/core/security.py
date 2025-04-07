@@ -71,8 +71,7 @@ def get_password_hash(password: str) -> str:
 async def get_token_from_websocket(websocket: WebSocket) -> str:
     """Получение токена из заголовков WebSocket соединения"""
     auth_header = websocket.headers.get("Authorization")
-    print(f"WebSocket headers: {websocket.headers}")
-    print(f"Auth header: {auth_header}")
+
     if not auth_header or not auth_header.startswith("Bearer "):
         raise InvalidTokenException()
     return auth_header.replace("Bearer ", "")

@@ -24,6 +24,10 @@ async def create_new_chat(
     current_user: UserInDB = Depends(get_current_user)
 ):
     """Создание нового чата"""
+    logger.info(f"Creating new chat: {chat_data}")
+    logger.info(f"Creating new chat: {chat_data}")
+    logger.info(f"Creating new chat: {chat_data}")
+    logger.info(f"Creating new chat: {chat_data}")
     chat = await chat_service.create_chat(chat_data, current_user)
     logger.debug(f"Created chat: type={chat.chat_type}, id={chat.id}")
     

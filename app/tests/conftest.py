@@ -58,12 +58,12 @@ VALID_LOGIN_DATA = {
 }
 
 ADDITIONAL_TEST_USER_DATA = {
-    "username": "test_iwm5fcvsye@example.com",
-    "password": "testpass123"
+    "username": "additional_user@user.com",
+    "password": "testotest"
 }
 
 ADDITIONAL_TEST_USER_DATA_2 = {
-    "username": "new_user@user.com",
+    "username": "just@just.com",
     "password": "testotest"
 }
 

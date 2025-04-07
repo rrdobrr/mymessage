@@ -25,6 +25,7 @@ class ChatService:
     async def create_chat(self, chat_data: ChatCreate, current_user: UserInDB) -> Chat:
         """Создание нового чата"""
         try:
+            logger.info(f"Creating chat: {chat_data}")
             if chat_data.chat_type == ChatType.PERSONAL:
                 if len(chat_data.member_ids) != 1:
                     raise ValidationException("Personal chat must have exactly one member")
@@ -48,11 +49,13 @@ class ChatService:
 
             else:  # GroupChat
                 if not chat_data.name:
+                    name = f"Group chat {len(chat_data.member_ids)}"
                     raise ValidationException("Group chat must have a name")
                 
                 # Получаем участников для группового чата
                 members = []
                 for user_id in chat_data.member_ids:
+                    logger.info(f"Getting user by id: {user_id}")
                     user = await self.user_repository.get_by_id(user_id)
                     if not user:
                         raise NotFoundException(f"User {user_id} not found")

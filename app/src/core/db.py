@@ -11,7 +11,6 @@ import logging
 logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
 
 
-print(f"Using database: {settings.DATABASE_URL}")  # Добавим для отладки
 
 # Создаем базовый класс для моделей
 class Base(DeclarativeBase):

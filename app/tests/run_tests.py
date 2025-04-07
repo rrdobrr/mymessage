@@ -2,6 +2,8 @@ import pytest
 import sys
 from pathlib import Path
 
+from .logger_for_pytest import logger
+
 # Добавляем путь к src в PYTHONPATH
 root_path = Path(__file__).parent.parent
 src_path = root_path / "src"
@@ -26,7 +28,7 @@ def run_tests():
     ])
     
     if exit_code != 0:
-        print("\nТесты остановлены из-за ошибки.")
+        logger.info("\nТесты остановлены из-за ошибки.")
         sys.exit(exit_code)
 
 if __name__ == "__main__":

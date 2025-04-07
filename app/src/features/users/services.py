@@ -32,6 +32,7 @@ class UserService:
 
     async def get_user(self, user_id: int) -> User:
         """Получение пользователя по ID"""
+        
         user = await self.repository.get_by_id(user_id)
         if not user:
             logger.warning(f"User not found: id={user_id}")

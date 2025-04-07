@@ -97,25 +97,26 @@ class TestUsers:
         )
         assert response.status_code == 403, "Должен быть запрещен доступ к чужому профилю"
 
-    # async def test_delete_account(self, client: AsyncClient, test_user: dict):
-        # """Тест удаления аккаунта"""
-        # # Используем данные из VALID_USER_DATA для логина тестового пользователя
-        # login_response = await client.post("/api/v1/auth/token", data={
-        #     "username": VALID_USER_DATA["email"],
-        #     "password": VALID_USER_DATA["password"]
-        # })
-        # tokens = login_response.json()
-        # headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    @pytest.mark.skipif(True, reason="Отключено для отладки")
+    async def test_delete_account(self, client: AsyncClient, test_user: dict):
+        """Тест удаления аккаунта"""
+        # Используем данные из VALID_USER_DATA для логина тестового пользователя
+        login_response = await client.post("/api/v1/auth/token", data={
+            "username": VALID_USER_DATA["email"],
+            "password": VALID_USER_DATA["password"]
+        })
+        tokens = login_response.json()
+        headers = {"Authorization": f"Bearer {tokens['access_token']}"}
 
-        # user_id = test_user["id"]
-        # response = await client.delete(
-        #     f"/api/v1/users/{user_id}/delete",
-        #     headers=headers
-        # )
-        # assert response.status_code == 200, "Ошибка удаления аккаунта"
+        user_id = test_user["id"]
+        response = await client.delete(
+            f"/api/v1/users/{user_id}/delete",
+            headers=headers
+        )
+        assert response.status_code == 200, "Ошибка удаления аккаунта"
 
-        # get_response = await client.get(
-        #     f"/api/v1/users/{user_id}",
-        #     headers=headers
-        # )
-        # assert get_response.status_code == 404, "Пользователь не был удален"
+        get_response = await client.get(
+            f"/api/v1/users/{user_id}",
+            headers=headers
+        )
+        assert get_response.status_code == 404, "Пользователь не был удален"

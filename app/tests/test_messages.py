@@ -1,6 +1,7 @@
 import pytest
 from httpx import AsyncClient
 from .conftest import AUTH_USER_DATA
+from .logger_for_pytest import logger
 
 pytestmark = pytest.mark.asyncio  # Добавляем маркер для всех тестов в модуле
 
@@ -39,13 +40,11 @@ class TestMessages:
             "sender_id": user_id
         }
         response = await client.post("/api/v1/messages/create", headers=headers, json=message_data)
-        print(f"Error response: {response}")
-        print(f"Error response: {response}")
-        print(f"Error response: {response}")
+        logger.info(f"Response received: {response}")
         # Если ошибка, выведем детали
         if response.status_code != 201:
             error_detail = response.json()
-            print(f"Error response: {error_detail}")
+            logger.info(f"Error details: {error_detail}")
             
         assert response.status_code == 201, f"Ожидался статус 201, получен {response.status_code}"
         message = response.json()

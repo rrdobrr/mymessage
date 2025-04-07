@@ -10,6 +10,8 @@ import uuid
 from fastapi.testclient import TestClient
 from main import app  # Импортируем основное приложение
 
+from .logger_for_pytest import logger
+
 from tests.conftest import (
     VALID_USER_DATA,
     INVALID_USER_DATA,
@@ -79,6 +81,17 @@ def generate_idempotency_key() -> str:
     unique_id = str(uuid.uuid4())
     return f"{timestamp}-{unique_id}"
 
+async def wait_for_type(ws, field: str, expected_type: str, timeout: float = 5.0):
+    """Получение сообщения с ожидаемым типом"""
+    async def _receive():
+        while True:
+            msg = json.loads(await ws.recv())
+            if msg.get(field) == expected_type:
+                return msg
+    return await asyncio.wait_for(_receive(), timeout)
+
+
+
 class TestWebSocket:
     """Тесты WebSocket"""
         
@@ -90,7 +103,7 @@ class TestWebSocket:
         token = await get_auth_token(client)
         assert token, "Не удалось получить токен авторизации"
         
-        chat_id = 10
+        chat_id = 3
         try:
             async with await connect_websocket(token, chat_id) as websocket:
                 response_data = await send_and_receive_message(websocket, chat_id)
@@ -117,7 +130,7 @@ class TestWebSocket:
         token = await get_auth_token(client)
         assert token, "Не удалось получить токен авторизации"
         
-        chat_id = 10
+        chat_id = 3
         try:
             # Первое подключение и отправка сообщения
             async with await connect_websocket(token, chat_id) as websocket1:
@@ -140,7 +153,7 @@ class TestWebSocket:
     async def test_idempotency(self, client: AsyncClient):
         """Тест идемпотентности отправки сообщений"""
         token = await get_auth_token(client)
-        chat_id = 10
+        chat_id = 3
         idempotency_key = generate_idempotency_key()
         
         async with websockets.connect(
@@ -179,7 +192,7 @@ class TestWebSocket:
     async def test_message_read_status(self, client: AsyncClient):
         """Тест статуса прочтения сообщения"""
         token1 = await get_auth_token(client)
-        chat_id = 10
+        chat_id = 3
         
         async with websockets.connect(
             f"ws://localhost:8000/api/v1/websocket/chat/{chat_id}",
@@ -197,10 +210,7 @@ class TestWebSocket:
             # Получаем ответ о создании сообщения
             message_response = await ws1.recv()
             message_data = json.loads(message_response)
-            print(f"СМОТРИМ НА ОТВЕТ: {message_data}")
-            print(f"СМОТРИМ НА ОТВЕТ: {message_data}")
-            print(f"СМОТРИМ НА ОТВЕТ: {message_data}")
-            print(f"СМОТРИМ НА ОТВЕТ: {message_data}")
+            logger.info(f"Message data received: {message_data}")
             message_id = message_data["message_id"]
             
             # Отправляем статус прочтения
@@ -233,7 +243,7 @@ class TestWebSocket:
         token1 = await get_auth_token(client, data=VALID_LOGIN_DATA)
         token2 = await get_auth_token(client, data=ADDITIONAL_TEST_USER_DATA)
         
-        chat_id = 104  # Предполагаем, что чат существует
+        chat_id = 3 
 
         # Подключаемся к WebSocket
         ws1 = await connect_websocket(token1, chat_id)
@@ -249,25 +259,25 @@ class TestWebSocket:
                 "idempotency_key": generate_idempotency_key()
 
             }))
-            print(f"Пользователь 1 отправил сообщение")
+            logger.info("User 1 sent message")
 
 
 
             # Оба пользователя получат NewMessageResponse
-            response1 = json.loads(await ws1.recv())
-            print(f"Пользователь 1 получил ответ после отправки: {response1}")
+            response1 = await wait_for_type(ws1, "response_type", "new_message")
+            logger.info(f"User 1 received response after sending: {response1}")
             assert response1["response_type"] == "new_message"  # Тип ответа
             assert response1["text"] == test_message
 
 
 
             response2 = json.loads(await ws2.recv())
-            print(f"Пользователь 2 получил сообщение: {response2}")
+            logger.info(f"User 2 received message: {response2}")
 
             assert response2["message_type"] == "new_message"  # Тот же тип для всех
             assert response2["text"] == test_message
             
-
+            logger.info(f"Чек 1")
             # Отправляем ответное сообщение
             reply_message = "Получил сообщение!"
             await ws2.send(json.dumps({
@@ -277,13 +287,14 @@ class TestWebSocket:
                 "idempotency_key": generate_idempotency_key()
 
             }))
+            logger.info(f"Чек 2")
             message2 = json.loads(await ws2.recv())
 
-            print(f"Пользователь 2 отправил сообщение: {message2}")
-
+            logger.info(f"User 2 sent message: {message2}")
+            logger.info(f"Чек 3")
             # Получаем ответ первым пользователем
             response3 = json.loads(await ws1.recv())
-            print(f"Пользователь 1 получает уведомление о новом сообщении: {response3}")
+            logger.info(f"User 1 received new message notification: {response3}")
             assert response3["message_type"] == "new_message"
             assert response3["text"] == reply_message
 
@@ -292,14 +303,14 @@ class TestWebSocket:
                 "chat_id": chat_id,
                 "message_id": message2["message_id"]
             }))
-            print(f"Пользователь 1 отправляет статус прочтения")
+            logger.info("User 1 sending read status")
             # Отправляем статус прочтения
             await asyncio.sleep(0.5)
             read_status = json.loads(await ws2.recv())
             # Даем время на обработку статуса прочтения
 
             
-            print(f"Пользователь 2 получает статус прочтения: {read_status}")
+            logger.info(f"User 2 received read status: {read_status}")
             assert read_status["message_type"] == "read_status"
             assert read_status["message_id"] == message2["message_id"]
         
@@ -317,7 +328,7 @@ class TestWebSocket:
         token2 = await get_auth_token(client, ADDITIONAL_TEST_USER_DATA)
         token3 = await get_auth_token(client, ADDITIONAL_TEST_USER_DATA_2)
         
-        chat_id = 104  # Предполагаем, что существует групповой чат
+        chat_id = 3
         
         # Подключаемся к WebSocket
         ws1 = await connect_websocket(token1, chat_id)
@@ -335,18 +346,18 @@ class TestWebSocket:
             }))
             
             # Все получают сообщение
-            response1 = json.loads(await ws1.recv())
-            print(f"Пользователь 1 получил ответ после отправки: {response1}")
+            response1 = await wait_for_type(ws1, "response_type", "new_message")
+            logger.info(f"User 1 received response after sending: {response1}")
             assert response1["response_type"] == "new_message"
             assert response1["text"] == initial_message
             
-            response2 = json.loads(await ws2.recv())
-            print(f"Пользователь 2 получил сообщение: {response2}")
+            response2 = await wait_for_type(ws2, "message_type", "new_message")
+            logger.info(f"User 2 received message: {response2}")
             assert response2["message_type"] == "new_message"
             assert response2["text"] == initial_message
             
             response3 = json.loads(await ws3.recv())
-            print(f"Пользователь 3 получил сообщение: {response3}")
+            logger.info(f"User 3 received message: {response3}")
             assert response3["message_type"] == "new_message"
             assert response3["text"] == initial_message
             
@@ -360,16 +371,16 @@ class TestWebSocket:
             }))
             
             message2 = json.loads(await ws2.recv())
-            print(f"Пользователь 2 отправил сообщение: {message2}")
+            logger.info(f"User 2 sent message: {message2}")
             
             # Первый и третий получают ответ
             response1 = json.loads(await ws1.recv())
-            print(f"Пользователь 1 получил ответное сообщение: {response1}")
+            logger.info(f"User 1 received response after sending: {response1}")
             assert response1["message_type"] == "new_message"
             assert response1["text"] == reply1
             
             response3 = json.loads(await ws3.recv())
-            print(f"Пользователь 3 получил ответное сообщение: {response3}")
+            logger.info(f"User 3 received response after sending: {response3}")
             assert response3["message_type"] == "new_message"
             assert response3["text"] == reply1
             
@@ -380,13 +391,13 @@ class TestWebSocket:
                     "chat_id": chat_id,
                     "message_id": message2["message_id"]
                 }))
-                print(f"Отправлен статус прочтения")
+                logger.info("Sending read status")
             
             # Все получают обновления статусов
             await asyncio.sleep(0.1)  # Даем время на обработку
             for _ in range(2):  # Ожидаем два статуса прочтения
                 status_update = json.loads(await ws2.recv())
-                print(f"Получено обновление статуса: {status_update}")
+                logger.info(f"Received status update: {status_update}")
                 assert status_update["message_type"] == "read_status"
                 assert status_update["message_id"] == message2["message_id"]
             
@@ -395,4 +406,118 @@ class TestWebSocket:
             await ws1.close()
             await ws2.close()
             await ws3.close()
+
+    @pytest.mark.skipif(False, reason="Отключено для отладки")
+    @pytest.mark.asyncio
+    async def test_multiple_devices_connection(self, client: AsyncClient):
+        """Тест подключения одного пользователя с нескольких устройств"""
+        # Получаем токен для пользователя
+        token = await get_auth_token(client, VALID_LOGIN_DATA)
+        chat_id = 3
+
+        # Создаем три подключения, имитируя разные устройства
+        ws1 = await connect_websocket(token, chat_id)
+        ws2 = await connect_websocket(token, chat_id)
+        ws3 = await connect_websocket(token, chat_id)
+
+        try:
+            # Отправляем сообщение с первого "устройства"
+            test_message = "Сообщение с первого устройства"
+            await ws1.send(json.dumps({
+                "message_type": "new_message",
+                "chat_id": chat_id,
+                "text": test_message,
+                "idempotency_key": generate_idempotency_key()
+            }))
+
+            # Получаем ответ на первом устройстве
+            response1 = json.loads(await ws1.recv())
+            logger.info(f"Device 1 received response after sending: {response1}")
+            assert response1["response_type"] == "new_message"
+            assert response1["text"] == test_message
+
+            # Отправляем сообщение со второго "устройства"
+            second_message = "Сообщение со второго устройства"
+            await ws2.send(json.dumps({
+                "message_type": "new_message",
+                "chat_id": chat_id,
+                "text": second_message,
+                "idempotency_key": generate_idempotency_key()
+            }))
+
+            # Получаем ответ на втором устройстве
+            response2 = json.loads(await ws2.recv())
+            logger.info(f"Device 2 received response after sending: {response2}")
+            assert response2["response_type"] == "new_message"
+            assert response2["text"] == second_message
+
+            # Отправляем статус прочтения с третьего устройства
+            await ws3.send(json.dumps({
+                "message_type": "read_status",
+                "chat_id": chat_id,
+                "message_id": response2["message_id"]
+            }))
+
+            # Проверяем, что статус прочтения получен на всех устройствах
+            await asyncio.sleep(0.1)  # Даем время на обработку
+            read_status = json.loads(await ws3.recv())
+            logger.info(f"Device 3 received confirmation of read status: {read_status}")
+            assert read_status["response_type"] == "read_status"
+            assert read_status["message_id"] == response2["message_id"]
+
+        finally:
+            # Закрываем все соединения
+            for ws in [ws1, ws2, ws3]:
+                await ws.close()
+
+    @pytest.mark.skipif(False, reason="Отключено для отладки")
+    @pytest.mark.asyncio
+    async def test_user_online_status_notifications(self, client: AsyncClient):
+        """Тест уведомлений о статусе пользователей (онлайн/офлайн)"""
+        # Получаем токены для двух пользователей
+        token1 = await get_auth_token(client, VALID_LOGIN_DATA)
+        token2 = await get_auth_token(client, ADDITIONAL_TEST_USER_DATA)
+        chat_id = 3
+
+        # Подключаем первого пользователя
+        ws1 = await connect_websocket(token1, chat_id)
+        
+        try:
+            # Ждем немного, чтобы первый пользователь получил статус "онлайн"
+            await asyncio.sleep(0.1)
+            
+            # Подключаем второго пользователя
+            ws2 = await connect_websocket(token2, chat_id)
+
+            logger.info("User 2 connected")
+            # Первый пользователь должен получить уведомление о подключении второго
+            status_notification = json.loads(await ws1.recv())
+            logger.info(f"User 1 received status notification: {status_notification}")
+            assert status_notification["message_type"] == "user_status"
+            assert status_notification["status"] == "online"
+            
+            # Отключаем второго пользователя
+            await ws2.close()
+            
+            # Первый пользователь должен получить уведомление об отключении второго
+            offline_notification = json.loads(await ws1.recv())
+            logger.info(f"User 1 received offline notification: {offline_notification}")
+            assert offline_notification["message_type"] == "user_status"
+            assert offline_notification["status"] == "offline"
+
+            # Подключаем второго пользователя снова
+            ws2 = await connect_websocket(token2, chat_id)
+            
+            # Проверяем получение уведомления о повторном подключении
+            online_again_notification = json.loads(await ws1.recv())
+            logger.info(f"User 1 received online notification: {online_again_notification}")
+            assert online_again_notification["message_type"] == "user_status"
+            assert online_again_notification["status"] == "online"
+
+        finally:
+            # Закрываем все соединения
+            if 'ws1' in locals():
+                await ws1.close()
+            if 'ws2' in locals():
+                await ws2.close()
 
