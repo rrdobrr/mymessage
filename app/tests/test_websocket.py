@@ -103,7 +103,7 @@ class TestWebSocket:
         token = await get_auth_token(client)
         assert token, "Не удалось получить токен авторизации"
         
-        chat_id = 3
+        chat_id = 1
         try:
             async with await connect_websocket(token, chat_id) as websocket:
                 response_data = await send_and_receive_message(websocket, chat_id)
@@ -130,7 +130,7 @@ class TestWebSocket:
         token = await get_auth_token(client)
         assert token, "Не удалось получить токен авторизации"
         
-        chat_id = 3
+        chat_id = 1
         try:
             # Первое подключение и отправка сообщения
             async with await connect_websocket(token, chat_id) as websocket1:
@@ -153,7 +153,7 @@ class TestWebSocket:
     async def test_idempotency(self, client: AsyncClient):
         """Тест идемпотентности отправки сообщений"""
         token = await get_auth_token(client)
-        chat_id = 3
+        chat_id = 1
         idempotency_key = generate_idempotency_key()
         
         async with websockets.connect(
@@ -192,7 +192,7 @@ class TestWebSocket:
     async def test_message_read_status(self, client: AsyncClient):
         """Тест статуса прочтения сообщения"""
         token1 = await get_auth_token(client)
-        chat_id = 3
+        chat_id = 1
         
         async with websockets.connect(
             f"ws://localhost:8000/api/v1/websocket/chat/{chat_id}",
@@ -243,7 +243,7 @@ class TestWebSocket:
         token1 = await get_auth_token(client, data=VALID_LOGIN_DATA)
         token2 = await get_auth_token(client, data=ADDITIONAL_TEST_USER_DATA)
         
-        chat_id = 3 
+        chat_id = 1 
 
         # Подключаемся к WebSocket
         ws1 = await connect_websocket(token1, chat_id)
@@ -328,7 +328,7 @@ class TestWebSocket:
         token2 = await get_auth_token(client, ADDITIONAL_TEST_USER_DATA)
         token3 = await get_auth_token(client, ADDITIONAL_TEST_USER_DATA_2)
         
-        chat_id = 3
+        chat_id = 1
         
         # Подключаемся к WebSocket
         ws1 = await connect_websocket(token1, chat_id)
@@ -413,7 +413,7 @@ class TestWebSocket:
         """Тест подключения одного пользователя с нескольких устройств"""
         # Получаем токен для пользователя
         token = await get_auth_token(client, VALID_LOGIN_DATA)
-        chat_id = 3
+        chat_id = 1
 
         # Создаем три подключения, имитируя разные устройства
         ws1 = await connect_websocket(token, chat_id)
@@ -477,7 +477,7 @@ class TestWebSocket:
         # Получаем токены для двух пользователей
         token1 = await get_auth_token(client, VALID_LOGIN_DATA)
         token2 = await get_auth_token(client, ADDITIONAL_TEST_USER_DATA)
-        chat_id = 3
+        chat_id = 1
 
         # Подключаем первого пользователя
         ws1 = await connect_websocket(token1, chat_id)

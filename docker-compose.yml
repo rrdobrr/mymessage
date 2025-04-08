@@ -9,9 +9,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5433/postgres
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/mymessage
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   db:
     image: postgres:15
@@ -22,9 +23,9 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=mymessage
     ports:
-      - "5433:5433"
+      - "5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d mymessage"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5

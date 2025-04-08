@@ -1,6 +1,6 @@
 import sys
+import asyncio
 from pathlib import Path
-
 
 # Добавляем родительскую директорию в путь для импортов
 sys.path.append(str(Path(__file__).parent.parent))
@@ -15,6 +15,8 @@ from src.core.logging import setup_logging, logger
 from src.core.exceptions import setup_exception_handlers
 from src.core.relationships import setup_relationships
 from src.core.db import Base, engine, setup_db_relationships
+from src.core.wait_for_postgres import wait_for_postgres
+
 
 # Инициализируем настройки
 settings = get_settings()
@@ -23,14 +25,12 @@ settings = get_settings()
 setup_logging()
 
 
+# Создаём FastAPI приложение
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="API для мессенджера MyMessage",
     version=settings.VERSION,
-    # Добавляем настройку безопасности для Swagger UI
-    swagger_ui_init_oauth={
-        "usePkceWithAuthorizationCodeGrant": True,
-    }
+    swagger_ui_init_oauth={"usePkceWithAuthorizationCodeGrant": True}
 )
 
 # Добавляем CORS middleware
@@ -45,11 +45,12 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup():
     """Инициализация приложения"""
-    # Создаем таблицы в БД
+
+    await wait_for_postgres(settings.DATABASE_URL)
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
-    # Устанавливаем отношения между моделями
+
     setup_relationships()
 
 # Регистрируем обработчики исключений
@@ -61,10 +62,6 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
-
-@app.get("/")
-async def root():
-    return {"message": "Welcome to MyMessage API"}
 
 # Middleware для логирования запросов
 @app.middleware("http")

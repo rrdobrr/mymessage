@@ -292,6 +292,7 @@ class TestChats:
             "username": non_member["email"],
             "password": "testotest"
         })
+            
         logger.info(f"Login response: {login_response}")
         tokens = login_response.json()
         logger.info(f"Tokens: {tokens}")

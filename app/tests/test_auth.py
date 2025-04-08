@@ -7,6 +7,7 @@ from tests.conftest import (
     INVALID_LOGIN_DATA,
     AUTH_USER_DATA
 )
+from app.tests.conftest import generate_random_email, generate_random_username
 
 from src.core.logging import logger
 
@@ -16,14 +17,34 @@ class TestAuth:
     """Тесты аутентификации."""
 
     async def test_register_valid(self, client: AsyncClient):
-        """Проверка успешной регистрации пользователя"""
-        test_data = VALID_USER_DATA.copy()
-        response = await client.post("/api/v1/auth/register", json=test_data)
-        assert response.status_code == 200, f"Ожидался статус 200, получен {response.status_code}"
-        data = response.json()
-        assert "id" in data, "ID пользователя отсутствует в ответе"
-        assert data["email"] == test_data["email"], "Email не совпадает с отправленным"
-        assert data["username"] == test_data["username"], "Username не совпадает"
+        """Проверка успешной регистрации пользователей"""
+        created_users = []
+        
+        # Регистрируем 5 пользователей с уникальными данными
+        for _ in range(5):
+            test_data = {
+                "email": generate_random_email(),
+                "username": generate_random_username(),
+                "password": "testpass123"
+            }
+            
+            response = await client.post("/api/v1/auth/register", json=test_data)
+            assert response.status_code == 200, f"Ожидался статус 200, получен {response.status_code}"
+            data = response.json()
+            
+            # Проверяем корректность данных
+            assert "id" in data, "ID пользователя отсутствует в ответе"
+            assert data["email"] == test_data["email"], "Email не совпадает с отправленным"
+            assert data["username"] == test_data["username"], "Username не совпадает"
+            
+            created_users.append(data)
+        
+        # Проверяем, что все пользователи созданы
+        assert len(created_users) == 5, "Не все пользователи были созданы"
+        
+        # Проверяем уникальность ID
+        user_ids = [user["id"] for user in created_users]
+        assert len(set(user_ids)) == 5, "ID пользователей не уникальны"
 
     async def test_register_invalid(self, client: AsyncClient):
         """Проверка валидации данных при регистрации"""
